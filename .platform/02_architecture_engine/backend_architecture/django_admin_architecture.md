@@ -1,0 +1,3 @@
+# django_admin_architecture
+
+按主题继续补充。

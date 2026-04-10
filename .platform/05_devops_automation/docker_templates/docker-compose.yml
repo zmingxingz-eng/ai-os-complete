@@ -1,0 +1,14 @@
+version: '3.9'
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: 05_devops_automation/docker_templates/Dockerfile.backend
+    ports:
+      - "8000:8000"
+  frontend:
+    build:
+      context: ../..
+      dockerfile: 05_devops_automation/docker_templates/Dockerfile.frontend
+    ports:
+      - "4173:4173"

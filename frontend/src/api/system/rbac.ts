@@ -1,0 +1,15 @@
+import request from '@/api/request'
+
+export const fetchUserRoleList = (params?: any) => request.get('/system/rbac/user-role/', { params })
+export const fetchRolePermissionList = (params?: any) => request.get('/system/rbac/role-permission/', { params })
+export const fetchRoleMenuList = (params?: any) => request.get('/system/rbac/role-menu/', { params })
+export const fetchRoleDataScopeList = (params?: any) => request.get('/system/rbac/role-data-scope/', { params })
+export const createUserRole = (data: any) => request.post('/system/rbac/user-role/', data)
+export const deleteUserRole = (id: number) => request.delete(`/system/rbac/user-role/${id}/`)
+export const createRolePermission = (data: any) => request.post('/system/rbac/role-permission/', data)
+export const deleteRolePermission = (id: number) => request.delete(`/system/rbac/role-permission/${id}/`)
+export const createRoleMenu = (data: any) => request.post('/system/rbac/role-menu/', data)
+export const deleteRoleMenu = (id: number) => request.delete(`/system/rbac/role-menu/${id}/`)
+export const createRoleDataScope = (data: any) => request.post('/system/rbac/role-data-scope/', data)
+export const updateRoleDataScope = (id: number, data: any) => request.put(`/system/rbac/role-data-scope/${id}/`, data)
+export const deleteRoleDataScope = (id: number) => request.delete(`/system/rbac/role-data-scope/${id}/`)

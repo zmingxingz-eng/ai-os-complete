@@ -1,0 +1,19 @@
+@use './variables.scss';
+
+* { box-sizing: border-box; }
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--app-bg);
+}
+
+.app-card {
+  border-radius: var(--app-radius);
+}
