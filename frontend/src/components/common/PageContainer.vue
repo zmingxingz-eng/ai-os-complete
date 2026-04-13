@@ -1,26 +1,36 @@
 <template>
   <div class="page-container">
-    <div v-if="title || description || $slots.actions" class="page-container__header">
+    <div class="page-container__header">
       <div>
-        <h2 v-if="title" class="page-container__title">{{ title }}</h2>
-        <p v-if="description" class="page-container__description">{{ description }}</p>
+        <div class="page-container__title">{{ title || routeTitle }}</div>
+        <div v-if="description" class="page-container__description">{{ description }}</div>
       </div>
       <div v-if="$slots.actions" class="page-container__actions">
         <slot name="actions" />
       </div>
     </div>
-    <div v-if="$slots.filters" class="page-container__filters">
+
+    <el-card v-if="$slots.filters" shadow="never" class="app-card">
       <slot name="filters" />
-    </div>
-    <slot />
+    </el-card>
+
+    <el-card shadow="never" class="app-card">
+      <slot />
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const props = defineProps<{
   title?: string
   description?: string
 }>()
+
+const route = useRoute()
+const routeTitle = computed(() => String(props.title || route.meta.title || '未命名页面'))
 </script>
 
 <style scoped>
@@ -38,17 +48,17 @@ defineProps<{
 }
 
 .page-container__title {
-  margin: 0;
-  font-size: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .page-container__description {
-  margin: 6px 0 0;
-  color: #909399;
+  margin-top: 6px;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
 }
 
-.page-container__filters,
 .page-container__actions {
   display: flex;
   gap: 12px;

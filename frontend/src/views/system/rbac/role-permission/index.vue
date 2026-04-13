@@ -99,9 +99,10 @@ const permissionMenuMap = computed(() => {
 
 const filteredList = computed(() => {
   if (!menuFilter.value) return list.value
+  const currentMenuId = Number(menuFilter.value)
   return list.value.filter((item: any) => {
     const menuIds = permissionMenuMap.value.get(item.permission) || []
-    return menuIds.includes(menuFilter.value)
+    return menuIds.includes(currentMenuId)
   })
 })
 

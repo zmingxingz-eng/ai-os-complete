@@ -1,19 +1,20 @@
 <template>
   <div class="login-page">
-    <div class="login-card">
-      <h2>AI OS 2.0 登录</h2>
-      <el-form :model="form" label-width="70px">
+    <el-card shadow="never" class="login-card app-card">
+      <div class="login-card__title">AI OS Admin</div>
+      <div class="login-card__subtitle">使用系统账号登录后台管理平台</div>
+      <el-form :model="form" label-position="top">
         <el-form-item label="账号">
-          <el-input v-model="form.username" />
+          <el-input v-model="form.username" placeholder="请输入账号" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" show-password />
+          <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" />
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="handleLogin">登录</el-button>
+        <el-form-item class="login-card__actions">
+          <el-button type="primary" :loading="loading" @click="handleLogin">登录系统</el-button>
         </el-form-item>
       </el-form>
-    </div>
+    </el-card>
   </div>
 </template>
 
@@ -57,3 +58,38 @@ const handleLogin = async () => {
   }
 }
 </script>
+
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #e9ecef;
+}
+
+.login-card {
+  width: 420px;
+}
+
+.login-card__title {
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.login-card__subtitle {
+  margin: 8px 0 24px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+}
+
+.login-card__actions :deep(.el-form-item__content) {
+  justify-content: center;
+}
+
+.login-card__actions .el-button {
+  width: 100%;
+}
+</style>

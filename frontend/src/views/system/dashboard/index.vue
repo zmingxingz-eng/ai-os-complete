@@ -1,5 +1,5 @@
 <template>
-  <PageContainer title="系统首页" description="查看当前系统管理骨架的基础统计与访问入口。">
+  <PageContainer title="系统首页" description="查看当前系统运行概况与快捷入口。">
     <div class="dashboard-grid">
       <el-card shadow="never" class="app-card">
         <template #header>当前用户</template>
@@ -16,6 +16,14 @@
         <div class="dashboard-value">{{ menus.length }}</div>
         <div class="dashboard-desc">当前登录用户可见菜单数</div>
       </el-card>
+      <el-card shadow="never" class="app-card">
+        <template #header>快捷入口</template>
+        <div class="dashboard-actions">
+          <el-button type="primary" plain @click="router.push('/system/users')">用户管理</el-button>
+          <el-button type="primary" plain @click="router.push('/system/role')">角色管理</el-button>
+          <el-button type="primary" plain @click="router.push('/system/menu')">菜单管理</el-button>
+        </div>
+      </el-card>
     </div>
   </PageContainer>
 </template>
@@ -23,11 +31,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import PageContainer from '@/components/common/PageContainer.vue'
 import { fetchSessionInfo } from '@/api/auth'
 import { usePermissionStore } from '@/store/permission'
 
 const permissionStore = usePermissionStore()
+const router = useRouter()
 const { menus, dataScopes } = storeToRefs(permissionStore)
 const sessionInfo = ref<Record<string, any>>({})
 
@@ -56,5 +66,11 @@ onMounted(async () => {
 .dashboard-desc {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 </style>

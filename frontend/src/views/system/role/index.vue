@@ -4,15 +4,21 @@
       <div class="toolbar">
         <el-input v-model="keyword" placeholder="角色名称/编码" style="width: 240px;" />
         <el-button type="primary" @click="fetchList">查询</el-button>
+        <el-button @click="handleReset">重置</el-button>
         <el-button type="success" @click="openCreate">新增</el-button>
       </div>
     </template>
 
-    <el-table :data="filteredList" v-loading="loading" border>
+    <el-table :data="filteredList" v-loading="loading" border empty-text="暂无角色数据">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="name" label="角色名称" />
       <el-table-column prop="code" label="角色编码" />
-      <el-table-column prop="description" label="描述" />
+      <el-table-column prop="description" label="描述" show-overflow-tooltip />
+      <el-table-column label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.is_active ? 'success' : 'info'">{{ row.is_active ? '启用' : '停用' }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="320">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -36,7 +42,7 @@
       />
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑角色' : '新增角色'" width="520px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑角色' : '新增角色'" width="520px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
         <el-form-item label="角色名称" prop="name">
           <el-input v-model="form.name" />
@@ -57,7 +63,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="assignDialogVisible" title="菜单权限" width="620px">
+    <el-dialog v-model="assignDialogVisible" title="菜单权限" width="620px" destroy-on-close>
       <div class="assign-header">当前角色：{{ assignRole?.name || '-' }}</div>
       <el-tree
         ref="assignTreeRef"
@@ -73,7 +79,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="dataScopeDialogVisible" title="设置数据权限" width="520px">
+    <el-dialog v-model="dataScopeDialogVisible" title="设置数据权限" width="520px" destroy-on-close>
       <div class="assign-header">当前角色：{{ dataScopeRole?.name || '-' }}</div>
       <el-form ref="dataScopeFormRef" :model="dataScopeForm" :rules="dataScopeRules" label-width="100px">
         <el-form-item label="数据范围" prop="scope_type">
@@ -86,9 +92,21 @@
           </el-select>
         </el-form-item>
         <el-form-item v-if="dataScopeForm.scope_type === 'custom'" label="指定组织" prop="organizations">
-          <el-select v-model="dataScopeForm.organizations" multiple collapse-tags collapse-tags-tooltip filterable style="width: 100%">
-            <el-option v-for="item in organizations" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
+          <el-tree-select
+            v-model="dataScopeForm.organizations"
+            :data="organizationTree"
+            node-key="id"
+            multiple
+            show-checkbox
+            check-strictly
+            collapse-tags
+            collapse-tags-tooltip
+            filterable
+            default-expand-all
+            :props="{ label: 'name', children: 'children' }"
+            placeholder="请选择组织"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -185,6 +203,33 @@ const filteredList = computed(() => {
     String(item.name || '').includes(keyword.value) || String(item.code || '').includes(keyword.value)
   )
 })
+
+const organizationTree = computed(() => buildTree(organizations.value))
+
+const buildTree = (items: any[]) => {
+  const map = new Map<number, any>()
+  const roots: any[] = []
+  items.forEach((item) => {
+    map.set(item.id, {
+      ...item,
+      name: item.path_name || item.name,
+      children: [],
+    })
+  })
+  map.forEach((node) => {
+    if (node.parent && map.has(node.parent)) {
+      map.get(node.parent).children.push(node)
+    } else {
+      roots.push(node)
+    }
+  })
+  return roots
+}
+
+const handleReset = () => {
+  keyword.value = ''
+  fetchList()
+}
 
 const assignTree = computed(() => {
   const menuMap = new Map<number, any>()

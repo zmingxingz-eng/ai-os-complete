@@ -4,13 +4,23 @@
       <div class="toolbar">
         <el-input v-model="keyword" placeholder="菜单名称/权限名称/编码" style="width: 280px;" />
         <el-button type="primary" @click="loadAll">查询</el-button>
+        <el-button @click="handleReset">重置</el-button>
         <el-button type="success" @click="openCreateMenu()">新增目录/菜单</el-button>
         <el-button type="warning" @click="openCreatePermission()">新增权限</el-button>
       </div>
     </template>
 
-    <el-table :data="treeData" v-loading="loading" border row-key="node_key" default-expand-all :tree-props="{ children: 'children' }">
-      <el-table-column prop="name" label="名称" min-width="220" />
+    <el-table :data="treeData" v-loading="loading" border row-key="node_key" empty-text="暂无菜单或权限数据" :expand-row-keys="expandedRowKeys" :tree-props="{ children: 'children' }">
+      <el-table-column label="名称" min-width="240">
+        <template #default="{ row }">
+          <div class="name-cell">
+            <el-icon v-if="row.node_type === 'menu' && resolveIconComponent(row.icon)" class="name-cell__icon">
+              <component :is="resolveIconComponent(row.icon)" />
+            </el-icon>
+            <span>{{ row.name }}</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="display_type" label="类型" width="120" />
       <el-table-column prop="code" label="编码" min-width="180" />
       <el-table-column prop="path" label="路由/权限" min-width="180" />
@@ -45,7 +55,7 @@
       />
     </div>
 
-    <el-dialog v-model="menuDialogVisible" :title="menuForm.id ? '编辑菜单' : '新增菜单'" width="620px">
+    <el-dialog v-model="menuDialogVisible" :title="menuForm.id ? '编辑菜单' : '新增菜单'" width="620px" destroy-on-close>
       <el-form ref="menuFormRef" :model="menuForm" :rules="menuRules" label-width="100px">
         <el-form-item label="菜单名称" prop="name">
           <el-input v-model="menuForm.name" />
@@ -71,7 +81,16 @@
           <el-input v-model="menuForm.component" />
         </el-form-item>
         <el-form-item label="图标">
-          <el-input v-model="menuForm.icon" />
+          <div class="icon-input-group">
+            <el-input v-model="menuForm.icon" readonly placeholder="请选择图标">
+              <template #prefix>
+                <el-icon v-if="resolveIconComponent(menuForm.icon)">
+                  <component :is="resolveIconComponent(menuForm.icon)" />
+                </el-icon>
+              </template>
+            </el-input>
+            <el-button @click="openIconDialog">选择图标</el-button>
+          </div>
         </el-form-item>
         <el-form-item label="业务模型">
           <el-select v-model="menuForm.content_type" clearable filterable style="width: 100%;">
@@ -94,7 +113,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="permissionDialogVisible" :title="permissionForm.id ? '编辑权限' : '新增权限'" width="620px">
+    <el-dialog v-model="permissionDialogVisible" :title="permissionForm.id ? '编辑权限' : '新增权限'" width="620px" destroy-on-close>
       <el-form ref="permissionFormRef" :model="permissionForm" :rules="permissionRules" label-width="100px">
         <el-form-item label="权限名称" prop="name">
           <el-input v-model="permissionForm.name" />
@@ -128,14 +147,57 @@
         <el-button type="primary" @click="handleSavePermission">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="iconDialogVisible" title="图标集合" width="760px" destroy-on-close>
+      <el-input v-model="iconKeyword" placeholder="搜索图标名称" clearable />
+
+      <ul class="icon-grid" role="listbox" aria-label="图标集合">
+        <li
+          v-for="iconName in pagedIconNames"
+          :key="iconName"
+          class="icon-grid__item"
+          :class="{ 'is-active': menuForm.icon === iconName }"
+          :aria-selected="menuForm.icon === iconName"
+          tabindex="0"
+          @click="selectIcon(iconName)"
+          @keydown.enter.prevent="selectIcon(iconName)"
+          @keydown.space.prevent="selectIcon(iconName)"
+        >
+          <div class="icon-grid__content">
+            <el-icon size="20">
+              <component :is="resolveIconComponent(iconName)" />
+            </el-icon>
+            <span class="icon-grid__label">{{ iconName }}</span>
+          </div>
+        </li>
+      </ul>
+
+      <div class="pagination-bar icon-pagination">
+        <el-pagination
+          background
+          layout="total, prev, pager, next"
+          :total="filteredIconNames.length"
+          :current-page="iconPage"
+          :page-size="iconPageSize"
+          @current-change="(page: number) => (iconPage = page)"
+        />
+      </div>
+
+      <template #footer>
+        <el-button @click="iconDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </PageContainer>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type ElForm, type FormRules } from 'element-plus'
+import { usePermissionStore } from '@/store/permission'
 import PageContainer from '@/components/common/PageContainer.vue'
 import { createMenu, deleteMenu, fetchMenuList, updateMenu } from '@/api/system/menu'
+import { fetchMyMenus } from '@/api/auth'
 import {
   createPermission,
   deletePermission,
@@ -145,16 +207,22 @@ import {
 } from '@/api/system/permission'
 
 const loading = ref(false)
+const permissionStore = usePermissionStore()
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const menuDialogVisible = ref(false)
 const permissionDialogVisible = ref(false)
+const iconDialogVisible = ref(false)
 const menuFormRef = ref<InstanceType<typeof ElForm>>()
 const permissionFormRef = ref<InstanceType<typeof ElForm>>()
 const menus = ref<any[]>([])
 const permissions = ref<any[]>([])
 const contentTypes = ref<any[]>([])
+const iconKeyword = ref('')
+const iconPage = ref(1)
+const iconPageSize = 30
+const iconNames = Object.keys(ElementPlusIconsVue).sort()
 
 const OTHER_PERMISSION_NODE_KEY = '__other_permissions__'
 
@@ -328,6 +396,15 @@ const treeData = computed(() => {
   return roots.slice(start, end)
 })
 
+const expandedRowKeys = computed(() => treeData.value.map((item: any) => item.node_key))
+const filteredIconNames = computed(() =>
+  iconNames.filter((name) => name.toLowerCase().includes(iconKeyword.value.trim().toLowerCase()))
+)
+const pagedIconNames = computed(() => {
+  const start = (iconPage.value - 1) * iconPageSize
+  return filteredIconNames.value.slice(start, start + iconPageSize)
+})
+
 const paginationTotal = computed(() => {
   const roots = filteredTreeRoots.value
   if (roots.length === 1 && roots[0]?.display_type === '目录') {
@@ -353,6 +430,12 @@ const loadAll = async () => {
   }
 }
 
+const refreshSidebarMenus = async () => {
+  const payload = await fetchMyMenus().catch(() => [])
+  const nextMenus = Array.isArray(payload) ? payload : payload?.results || payload || []
+  permissionStore.setMenus(nextMenus)
+}
+
 const handleCurrentChange = (page: number) => {
   currentPage.value = page
 }
@@ -360,6 +443,17 @@ const handleCurrentChange = (page: number) => {
 const handleSizeChange = (size: number) => {
   pageSize.value = size
   currentPage.value = 1
+}
+
+const handleReset = () => {
+  keyword.value = ''
+  currentPage.value = 1
+  loadAll()
+}
+
+const resolveIconComponent = (icon?: string) => {
+  if (!icon) return null
+  return (ElementPlusIconsVue as Record<string, any>)[icon] || null
 }
 
 const resetMenuForm = () => {
@@ -413,6 +507,17 @@ const openEditMenu = (row: any) => {
   nextTick(() => menuFormRef.value?.clearValidate())
 }
 
+const openIconDialog = () => {
+  iconKeyword.value = ''
+  iconPage.value = 1
+  iconDialogVisible.value = true
+}
+
+const selectIcon = (iconName: string) => {
+  menuForm.icon = iconName
+  iconDialogVisible.value = false
+}
+
 const handleSaveMenu = async () => {
   const valid = await menuFormRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -437,14 +542,14 @@ const handleSaveMenu = async () => {
     ElMessage.success('菜单新增成功')
   }
   menuDialogVisible.value = false
-  loadAll()
+  await Promise.all([loadAll(), refreshSidebarMenus()])
 }
 
 const handleDeleteMenu = async (row: any) => {
   await ElMessageBox.confirm(`确认删除菜单【${row.name}】吗？`, '提示')
   await deleteMenu(row.id)
   ElMessage.success('菜单删除成功')
-  loadAll()
+  await Promise.all([loadAll(), refreshSidebarMenus()])
 }
 
 const openCreatePermission = (menuRow?: any) => {
@@ -508,9 +613,84 @@ onMounted(loadAll)
   flex-wrap: wrap;
 }
 
+.name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.name-cell__icon {
+  color: var(--app-primary);
+}
+
+.icon-input-group {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  width: 100%;
+}
+
+.icon-grid {
+  margin-top: 16px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--el-border-color);
+  border-left: 1px solid var(--el-border-color);
+}
+
+.icon-grid__item {
+  height: 96px;
+  border-right: 1px solid var(--el-border-color);
+  border-bottom: 1px solid var(--el-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 8px;
+  cursor: pointer;
+  background: var(--el-bg-color);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.icon-grid__item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.icon-grid__item.is-active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.icon-grid__item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+
+.icon-grid__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.icon-grid__label {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+  word-break: break-word;
+}
+
 .pagination-bar {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.icon-pagination {
+  margin-top: 20px;
 }
 </style>

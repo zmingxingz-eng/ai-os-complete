@@ -12,11 +12,16 @@
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="key" label="配置键" min-width="180" />
       <el-table-column prop="category" label="分类" min-width="120" />
-      <el-table-column prop="value" label="配置值" min-width="220" />
-      <el-table-column prop="remark" label="备注" min-width="180" />
+      <el-table-column prop="value" label="配置值" min-width="220" show-overflow-tooltip />
+      <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
       <el-table-column label="敏感配置" width="100">
         <template #default="{ row }">
-          {{ row.is_secret ? '是' : '否' }}
+          <el-tag :type="row.is_secret ? 'danger' : 'info'">{{ row.is_secret ? '是' : '否' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.is_active ? 'success' : 'info'">{{ row.is_active ? '启用' : '停用' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="180">
@@ -41,15 +46,15 @@
     </div>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑配置项' : '新增配置项'" width="560px">
-      <el-form :model="form" label-width="90px">
-        <el-form-item label="配置键">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
+        <el-form-item label="配置键" prop="key">
           <el-input v-model="form.key" />
         </el-form-item>
-        <el-form-item label="分类">
+        <el-form-item label="分类" prop="category">
           <el-input v-model="form.category" />
         </el-form-item>
-        <el-form-item label="配置值">
-          <el-input v-model="form.value" type="textarea" />
+        <el-form-item label="配置值" prop="value">
+          <el-input v-model="form.value" type="textarea" :rows="4" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" />
@@ -70,8 +75,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox, type ElForm, type FormRules } from 'element-plus'
 import PageContainer from '@/components/common/PageContainer.vue'
 import {
   createConfigCenterItem,
@@ -83,6 +88,7 @@ import { useCrud } from '@/composables/useCrud'
 
 const keyword = ref('')
 const dialogVisible = ref(false)
+const formRef = ref<InstanceType<typeof ElForm>>()
 const { list, loading, total, currentPage, pageSize, fetchList, handleCurrentChange, handleSizeChange } = useCrud<any>(fetchConfigCenterList)
 
 const filteredList = computed(() => {
@@ -102,6 +108,12 @@ const form = reactive<any>({
   is_active: true,
 })
 
+const formRules: FormRules = {
+  key: [{ required: true, message: '请输入配置键', trigger: 'blur' }],
+  category: [{ required: true, message: '请输入配置分类', trigger: 'blur' }],
+  value: [{ required: true, message: '请输入配置值', trigger: 'blur' }],
+}
+
 const resetForm = () => {
   form.id = undefined
   form.key = ''
@@ -112,17 +124,23 @@ const resetForm = () => {
   form.is_active = true
 }
 
-const openCreate = () => {
+const openCreate = async () => {
   resetForm()
   dialogVisible.value = true
+  await nextTick()
+  formRef.value?.clearValidate()
 }
 
-const openEdit = (row: any) => {
+const openEdit = async (row: any) => {
   Object.assign(form, row)
   dialogVisible.value = true
+  await nextTick()
+  formRef.value?.clearValidate()
 }
 
 const handleSubmit = async () => {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   const payload = {
     key: form.key,
     category: form.category,
@@ -133,10 +151,10 @@ const handleSubmit = async () => {
   }
   if (form.id) {
     await updateConfigCenterItem(form.id, payload)
-    ElMessage.success('编辑成功')
+    ElMessage.success('配置项编辑成功')
   } else {
     await createConfigCenterItem(payload)
-    ElMessage.success('新增成功')
+    ElMessage.success('配置项新增成功')
   }
   dialogVisible.value = false
   fetchList()
@@ -145,7 +163,7 @@ const handleSubmit = async () => {
 const handleDelete = async (row: any) => {
   await ElMessageBox.confirm(`确认删除配置项【${row.key}】吗？`, '提示')
   await deleteConfigCenterItem(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success('配置项删除成功')
   fetchList()
 }
 

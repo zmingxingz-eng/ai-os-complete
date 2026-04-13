@@ -1,5 +1,5 @@
 <template>
-  <PageContainer title="审计日志" description="查看系统关键操作记录。">
+  <PageContainer title="审计日志" description="查看系统关键操作记录与操作者信息。">
     <template #filters>
       <div class="toolbar">
         <el-input v-model="keyword" placeholder="操作类型/目标对象/操作人" style="width: 280px;" />
@@ -9,9 +9,9 @@
 
     <el-table :data="filteredList" v-loading="loading" border>
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="action" label="操作类型" min-width="120" />
-      <el-table-column prop="target" label="目标对象" min-width="160" />
-      <el-table-column prop="content" label="内容" min-width="220" />
+      <el-table-column prop="action" label="操作类型" min-width="140" />
+      <el-table-column prop="target" label="目标对象" min-width="180" />
+      <el-table-column prop="content" label="操作内容" min-width="240" show-overflow-tooltip />
       <el-table-column prop="operator_name" label="操作人" min-width="120" />
       <el-table-column prop="created_at" label="创建时间" min-width="180" />
     </el-table>

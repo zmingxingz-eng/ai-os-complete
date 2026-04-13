@@ -1,6 +1,16 @@
-$primary-color: #409eff;
+$primary-color: #007bff;
 
 :root {
   --app-radius: 5px;
-  --app-bg: #f5f7fa;
+  --app-bg: #f4f6f9;
+  --app-primary: #007bff;
+  --app-sidebar-bg: #343a40;
+  --app-sidebar-text: rgba(255, 255, 255, 0.8);
+  --app-sidebar-text-active: #ffffff;
+  --app-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --app-header-bg: #ffffff;
+  --app-footer-bg: #ffffff;
+  --el-border-radius-base: 5px;
+  --el-border-radius-small: 5px;
+  --el-border-radius-round: 5px;
 }

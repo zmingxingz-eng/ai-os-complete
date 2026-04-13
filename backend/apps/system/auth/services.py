@@ -3,6 +3,7 @@ from django.contrib.auth.models import Group, Permission
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.system.rbac.models import GroupMenu, GroupDataScope
 from apps.system.menu.models import Menu
+from apps.system.organization.models import UserOrganizationRelation
 RolePermissionModel = Group.permissions.through
 
 class AuthService:
@@ -47,12 +48,19 @@ class AuthService:
 
     @staticmethod
     def build_session_info(user):
+        primary_relation = (
+            UserOrganizationRelation.objects.select_related("organization", "position")
+            .filter(user=user, relation_type="primary", status="active")
+            .first()
+        )
         return {
             "username": user.username,
             "full_name": getattr(user, "full_name", "") or user.username,
             "user_id": user.id,
-            "organization_name": getattr(getattr(user, "organization", None), "name", ""),
-            "position_name": getattr(user, "position_name", ""),
+            "organization": primary_relation.organization_id if primary_relation and primary_relation.organization_id else getattr(user, "organization_id", None),
+            "organization_name": primary_relation.organization.name if primary_relation and primary_relation.organization else getattr(getattr(user, "organization", None), "name", ""),
+            "position": primary_relation.position_id if primary_relation and primary_relation.position_id else None,
+            "position_name": primary_relation.position.name if primary_relation and primary_relation.position else getattr(user, "position_name", ""),
             "is_superuser": user.is_superuser,
             "is_staff": user.is_staff,
         }

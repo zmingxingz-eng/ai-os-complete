@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { clearAuthTokens, getRefreshToken, getToken, setToken } from '@/utils/token'
 
-const request = axios.create({
+const request: any = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
   withCredentials: false
@@ -15,12 +15,12 @@ const flushQueue = (token: string) => {
   queue = []
 }
 
-const refreshInstance = axios.create({
+const refreshInstance: any = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000
 })
 
-request.interceptors.request.use((config) => {
+request.interceptors.request.use((config: any) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -29,14 +29,14 @@ request.interceptors.request.use((config) => {
 })
 
 request.interceptors.response.use(
-  (response) => {
+  (response: any) => {
     const payload = response.data
     if (payload && typeof payload === 'object' && 'code' in payload) {
       return payload.data
     }
     return payload
   },
-  async (error) => {
+  async (error: any) => {
     const originalRequest = error.config
     if (error.response?.status === 401 && !originalRequest?._retry) {
       const refresh = getRefreshToken()
